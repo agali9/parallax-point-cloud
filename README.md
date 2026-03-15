@@ -1,5 +1,5 @@
 # Parallax (point-cloud)
 
-Open3D prototype for moving point clouds into a small C++ project. The first
-version is just enough to verify point storage and conversion before adding the
-actual processing steps.
+Small C++ point cloud pipeline. The project now has a basic pipeline object that
+accepts `PointXYZ` vectors and returns a processed cloud, which gives later
+algorithms one API to plug into.

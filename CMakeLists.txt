@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(pointcloud_pipeline SHARED
-    src/open3d_bridge.cpp)
+    src/open3d_bridge.cpp
+    src/pipeline.cpp)
 
 target_include_directories(pointcloud_pipeline PUBLIC include)
 
