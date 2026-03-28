@@ -13,8 +13,14 @@ struct FilterConfig {
     float z_max = std::numeric_limits<float>::infinity();
 };
 
+struct VoxelGridConfig {
+    float voxel_size = 0.25F;
+};
+
 struct PipelineConfig {
     FilterConfig filter;
+    VoxelGridConfig voxel;
+    bool enable_downsampling = true;
 };
 
 }  // namespace pointcloud_pipeline

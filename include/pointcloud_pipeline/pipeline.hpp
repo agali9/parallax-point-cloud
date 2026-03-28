@@ -9,6 +9,7 @@ namespace pointcloud_pipeline {
 
 struct PipelineResult {
     std::vector<PointXYZ> filtered_cloud;
+    std::vector<PointXYZ> downsampled_cloud;
 };
 
 class PointCloudPipeline {
