@@ -9,6 +9,7 @@ add_library(pointcloud_pipeline SHARED
     src/filtering.cpp
     src/open3d_bridge.cpp
     src/pipeline.cpp
+    src/segmentation.cpp
     src/voxel_grid.cpp)
 
 target_include_directories(pointcloud_pipeline PUBLIC include)
@@ -16,6 +17,7 @@ target_include_directories(pointcloud_pipeline PUBLIC include)
 enable_testing()
 add_executable(pointcloud_pipeline_tests
     tests/test_filtering.cpp
+    tests/test_segmentation.cpp
     tests/test_voxel_grid.cpp
     tests/minigtest_main.cpp)
 target_include_directories(pointcloud_pipeline_tests PRIVATE tests)

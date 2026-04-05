@@ -1,6 +1,7 @@
 ﻿#include "pointcloud_pipeline/pipeline.hpp"
 
 #include "pointcloud_pipeline/filtering.hpp"
+#include "pointcloud_pipeline/segmentation.hpp"
 #include "pointcloud_pipeline/voxel_grid.hpp"
 
 namespace pointcloud_pipeline {
@@ -13,6 +14,7 @@ PipelineResult PointCloudPipeline::process(const std::vector<PointXYZ>& cloud) c
     result.downsampled_cloud = config_.enable_downsampling
         ? voxelGridDownsample(result.filtered_cloud, config_.voxel.voxel_size)
         : result.filtered_cloud;
+    result.clusters = euclideanCluster(result.downsampled_cloud, config_.segmentation);
     return result;
 }
 
