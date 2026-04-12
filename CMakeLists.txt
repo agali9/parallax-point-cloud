@@ -26,3 +26,5 @@ add_test(NAME pointcloud_pipeline_tests COMMAND pointcloud_pipeline_tests)
 
 add_executable(pointcloud_pipeline_example examples/cpp_example.cpp)
 target_link_libraries(pointcloud_pipeline_example PRIVATE pointcloud_pipeline)
+add_executable(pointcloud_pipeline_benchmark benchmarks/pipeline_benchmark.cpp)
+target_link_libraries(pointcloud_pipeline_benchmark PRIVATE pointcloud_pipeline)
