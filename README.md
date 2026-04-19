@@ -2,5 +2,5 @@
 
 Small C++ point cloud pipeline for class/research work.
 
-A first benchmark target measures one synthetic 100k point cloud so I can see
-which part gets slow.
+The pipeline result now carries per-stage timings so the benchmark can show
+where time goes instead of only printing a total.

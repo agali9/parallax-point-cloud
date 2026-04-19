@@ -23,4 +23,11 @@ struct Cluster {
     BoundingBox bbox;
 };
 
+struct StageTimings {
+    double filter_ms = 0.0;
+    double downsample_ms = 0.0;
+    double segmentation_ms = 0.0;
+    double total_ms = 0.0;
+};
+
 }  // namespace pointcloud_pipeline
