@@ -1,5 +1,6 @@
-﻿#pragma once
+#pragma once
 
+#include <span>
 #include <vector>
 
 #include "pointcloud_pipeline/config.hpp"
@@ -7,18 +8,15 @@
 
 namespace pointcloud_pipeline {
 
-struct PipelineResult {
-    std::vector<PointXYZ> filtered_cloud;
-    std::vector<PointXYZ> downsampled_cloud;
-    std::vector<Cluster> clusters;
-    StageTimings timings;
-};
-
 class PointCloudPipeline {
 public:
-    PointCloudPipeline() = default;
+    PointCloudPipeline();
     explicit PointCloudPipeline(PipelineConfig config);
 
+    [[nodiscard]] const PipelineConfig& config() const noexcept;
+    void setConfig(PipelineConfig config);
+
+    [[nodiscard]] PipelineResult process(std::span<const PointXYZ> cloud) const;
     [[nodiscard]] PipelineResult process(const std::vector<PointXYZ>& cloud) const;
 
 private:

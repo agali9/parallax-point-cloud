@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <cstddef>
 #include <limits>
@@ -12,6 +12,14 @@ struct FilterConfig {
     float y_max = std::numeric_limits<float>::infinity();
     float z_min = -std::numeric_limits<float>::infinity();
     float z_max = std::numeric_limits<float>::infinity();
+
+    bool enable_statistical_outlier_removal = true;
+    int neighbor_count = 8;
+    float std_dev_multiplier = 1.0F;
+
+    // The classic statistical outlier filter is based on k nearest neighbors.
+    // This cell size only controls how quickly we find local candidates.
+    float outlier_grid_cell_size = 1.0F;
 };
 
 struct VoxelGridConfig {

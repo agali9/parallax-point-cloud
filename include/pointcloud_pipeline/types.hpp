@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <cstddef>
 #include <vector>
@@ -6,9 +6,9 @@
 namespace pointcloud_pipeline {
 
 struct PointXYZ {
-    float x = 0.0F;
-    float y = 0.0F;
-    float z = 0.0F;
+    float x;
+    float y;
+    float z;
 };
 
 struct BoundingBox {
@@ -17,17 +17,27 @@ struct BoundingBox {
 };
 
 struct Cluster {
-    int id = 0;
+    int id;
     std::vector<std::size_t> indices;
     PointXYZ centroid;
     BoundingBox bbox;
 };
 
 struct StageTimings {
-    double filter_ms = 0.0;
-    double downsample_ms = 0.0;
-    double segmentation_ms = 0.0;
-    double total_ms = 0.0;
+    double filter_ms;
+    double downsample_ms;
+    double segmentation_ms;
+    double total_ms;
 };
+
+struct PipelineResult {
+    std::vector<PointXYZ> filtered_cloud;
+    std::vector<PointXYZ> downsampled_cloud;
+    std::vector<Cluster> clusters;
+    StageTimings timings;
+};
+
+static_assert(sizeof(PointXYZ) == 3 * sizeof(float),
+              "PointXYZ must stay tightly packed for NumPy interop");
 
 }  // namespace pointcloud_pipeline
