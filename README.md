@@ -1,4 +1,4 @@
 # Parallax (point-cloud)
 
-C++20 LiDAR point-cloud pipeline. Neighbor search for outlier removal and
-clustering now uses hash grids instead of scanning the whole cloud each time.
+C++20 LiDAR point-cloud pipeline built as a CMake shared library with headers
+under `include/pointcloud_pipeline/`.
