@@ -1,4 +1,4 @@
 # Parallax (point-cloud)
 
-C++20 LiDAR point-cloud pipeline. Python bindings accept a C-contiguous
-`(N, 3) float32` NumPy array and avoid copying the input buffer.
+C++20 LiDAR point-cloud pipeline with a stub ROS 2 node package that will wrap
+the shared library instead of reimplementing the pipeline.
