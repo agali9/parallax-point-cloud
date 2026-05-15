@@ -1,4 +1,4 @@
 # Parallax (point-cloud)
 
-C++20 LiDAR point-cloud pipeline with a stub ROS 2 node package that will wrap
-the shared library instead of reimplementing the pipeline.
+C++20 LiDAR point-cloud pipeline. The ROS 2 node publishes a processed cloud and
+cluster markers for RViz while the C++ library still owns the algorithms.
