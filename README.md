@@ -92,3 +92,8 @@ ros2 launch pointcloud_pipeline_ros pipeline.launch.py
 ```bash
 ctest --test-dir build --output-on-failure
 ```
+
+## CUDA Backend
+
+An optional `POINTCLOUD_PIPELINE_USE_CUDA` CMake flag is wired in. Host stubs
+currently report no device until the GPU kernels land.

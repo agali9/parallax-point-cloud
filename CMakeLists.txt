@@ -9,6 +9,7 @@ option(POINTCLOUD_PIPELINE_BUILD_PYTHON "Build pybind11 Python extension when py
 option(POINTCLOUD_PIPELINE_BUILD_TESTS "Build C++ unit tests" ON)
 option(POINTCLOUD_PIPELINE_BUILD_BENCHMARKS "Build benchmark executable" ON)
 option(POINTCLOUD_PIPELINE_USE_OPEN3D "Build optional Open3D conversion helpers when Open3D is available" ON)
+option(POINTCLOUD_PIPELINE_USE_CUDA "Build CUDA GPU backend when the CUDA toolkit is available" ON)
 option(POINTCLOUD_PIPELINE_ENABLE_COVERAGE "Enable gcov/llvm-cov coverage flags for tests" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -17,6 +18,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(pointcloud_pipeline SHARED
+    src/cuda_backend.cpp
     src/filtering.cpp
     src/pipeline.cpp
     src/segmentation.cpp

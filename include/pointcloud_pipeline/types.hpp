@@ -28,6 +28,9 @@ struct StageTimings {
     double downsample_ms;
     double segmentation_ms;
     double total_ms;
+    double h2d_ms = 0.0;
+    double d2h_ms = 0.0;
+    bool used_cuda = false;
 };
 
 struct PipelineResult {

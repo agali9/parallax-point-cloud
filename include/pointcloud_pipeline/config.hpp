@@ -5,6 +5,12 @@
 
 namespace pointcloud_pipeline {
 
+enum class ExecutionBackend {
+    Auto,
+    CPU,
+    CUDA,
+};
+
 struct FilterConfig {
     float x_min = -std::numeric_limits<float>::infinity();
     float x_max = std::numeric_limits<float>::infinity();
@@ -37,6 +43,7 @@ struct PipelineConfig {
     VoxelGridConfig voxel;
     SegmentationConfig segmentation;
     bool enable_downsampling = true;
+    ExecutionBackend backend = ExecutionBackend::Auto;
 };
 
 }  // namespace pointcloud_pipeline
