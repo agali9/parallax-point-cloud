@@ -17,12 +17,77 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(pointcloud_pipeline SHARED
+set(POINTCLOUD_PIPELINE_SOURCES
     src/cuda_backend.cpp
     src/filtering.cpp
     src/pipeline.cpp
     src/segmentation.cpp
     src/voxel_grid.cpp)
+
+if(POINTCLOUD_PIPELINE_USE_CUDA)
+    if(UNIX AND DEFINED ENV{CUDA_PATH})
+        if("$ENV{CUDA_PATH}" MATCHES "^/mnt/c/" OR "$ENV{CUDA_PATH}" MATCHES "Program Files")
+            unset(ENV{CUDA_PATH})
+        endif()
+    endif()
+
+    if(NOT CMAKE_CUDA_COMPILER AND DEFINED ENV{CUDA_PATH})
+        if(WIN32)
+            set(CMAKE_CUDA_COMPILER "$ENV{CUDA_PATH}/bin/nvcc.exe")
+        else()
+            set(CMAKE_CUDA_COMPILER "$ENV{CUDA_PATH}/bin/nvcc")
+        endif()
+    endif()
+
+    if(WIN32)
+        set(_pcp_nvcc_names nvcc.exe nvcc)
+    else()
+        set(_pcp_nvcc_names nvcc)
+    endif()
+
+    find_program(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE
+        NAMES ${_pcp_nvcc_names}
+        HINTS
+            "$ENV{CUDA_PATH}/bin"
+            "${CUDAToolkit_ROOT}/bin"
+            /usr/local/cuda/bin
+            /usr/lib/cuda/bin
+        NO_SYSTEM_ENVIRONMENT_PATH)
+
+    if(NOT POINTCLOUD_PIPELINE_NVCC_EXECUTABLE AND UNIX)
+        find_program(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE NAMES nvcc)
+    endif()
+
+    if(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE AND UNIX)
+        if(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE MATCHES "\\.exe$")
+            message(STATUS "Ignoring Windows nvcc.exe under WSL: ${POINTCLOUD_PIPELINE_NVCC_EXECUTABLE}")
+            unset(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE CACHE)
+        endif()
+    endif()
+
+    if(POINTCLOUD_PIPELINE_NVCC_EXECUTABLE)
+        set(CMAKE_CUDA_COMPILER "${POINTCLOUD_PIPELINE_NVCC_EXECUTABLE}")
+        if(WIN32 AND DEFINED ENV{CUDA_PATH})
+            set(CMAKE_VS_GLOBALS "CudaToolkitDir=$ENV{CUDA_PATH}")
+        endif()
+        if(NOT CMAKE_CUDA_ARCHITECTURES)
+            set(CMAKE_CUDA_ARCHITECTURES "75;86;89" CACHE STRING "CUDA architectures")
+        endif()
+        if(WIN32)
+            set(CMAKE_CUDA_COMPILER_WORKS TRUE)
+            set(CMAKE_CUDA_COMPILER_ID_RUN TRUE)
+        endif()
+        enable_language(CUDA)
+        find_package(CUDAToolkit REQUIRED)
+        list(APPEND POINTCLOUD_PIPELINE_SOURCES src/cuda/cuda_preprocess.cu)
+        set(POINTCLOUD_PIPELINE_CUDA_ENABLED TRUE)
+        message(STATUS "CUDA compiler found: ${POINTCLOUD_PIPELINE_NVCC_EXECUTABLE}")
+    else()
+        message(STATUS "CUDA compiler not found: GPU backend skipped")
+    endif()
+endif()
+
+add_library(pointcloud_pipeline SHARED ${POINTCLOUD_PIPELINE_SOURCES})
 set_target_properties(pointcloud_pipeline PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(pointcloud_pipeline::pointcloud_pipeline ALIAS pointcloud_pipeline)
@@ -35,9 +100,36 @@ target_include_directories(pointcloud_pipeline
 target_compile_features(pointcloud_pipeline PUBLIC cxx_std_20)
 
 if(MSVC)
-    target_compile_options(pointcloud_pipeline PRIVATE /W4 /permissive-)
+    target_compile_options(pointcloud_pipeline PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /permissive->)
 else()
-    target_compile_options(pointcloud_pipeline PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(pointcloud_pipeline PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic>)
+endif()
+
+if(POINTCLOUD_PIPELINE_CUDA_ENABLED)
+    target_compile_definitions(pointcloud_pipeline PUBLIC POINTCLOUD_PIPELINE_WITH_CUDA)
+    target_include_directories(pointcloud_pipeline PRIVATE src)
+    target_link_libraries(pointcloud_pipeline PRIVATE CUDA::cudart)
+    if(WIN32 AND DEFINED ENV{CUDA_PATH})
+        set_target_properties(pointcloud_pipeline PROPERTIES
+            VS_GLOBALS "CudaToolkitDir=$ENV{CUDA_PATH}")
+    endif()
+    set_target_properties(pointcloud_pipeline PROPERTIES
+        CUDA_SEPARABLE_COMPILATION OFF
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON)
+    if(MSVC)
+        target_compile_options(pointcloud_pipeline PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/std:c++20>)
+    else()
+        target_compile_options(pointcloud_pipeline PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:--std=c++20>)
+    endif()
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES OR CMAKE_CUDA_ARCHITECTURES STREQUAL "")
+        set_target_properties(pointcloud_pipeline PROPERTIES CUDA_ARCHITECTURES "75;86;89")
+    endif()
 endif()
 
 if(POINTCLOUD_PIPELINE_ENABLE_COVERAGE AND NOT MSVC)
@@ -80,7 +172,8 @@ if(POINTCLOUD_PIPELINE_BUILD_TESTS)
         tests/test_filtering.cpp
         tests/test_pipeline.cpp
         tests/test_segmentation.cpp
-        tests/test_voxel_grid.cpp)
+        tests/test_voxel_grid.cpp
+        tests/test_cuda_parity.cpp)
     target_link_libraries(pointcloud_pipeline_tests PRIVATE pointcloud_pipeline)
     target_include_directories(pointcloud_pipeline_tests PRIVATE tests)
 

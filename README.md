@@ -97,3 +97,6 @@ ctest --test-dir build --output-on-failure
 
 An optional `POINTCLOUD_PIPELINE_USE_CUDA` CMake flag is wired in. Host stubs
 currently report no device until the GPU kernels land.
+
+Thrust kernels now handle pass-through filtering and voxel downsampling;
+clustering still runs on the CPU.
