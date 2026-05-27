@@ -100,3 +100,6 @@ currently report no device until the GPU kernels land.
 
 Thrust kernels now handle pass-through filtering and voxel downsampling;
 clustering still runs on the CPU.
+
+The pipeline, tests, Python bindings, and ROS node can request the GPU backend
+when a device is available.

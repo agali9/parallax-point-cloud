@@ -11,6 +11,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
+#include "pointcloud_pipeline/cuda_backend.hpp"
 #include "pointcloud_pipeline/pipeline.hpp"
 
 namespace {
@@ -145,6 +146,15 @@ public:
 
         RCLCPP_INFO(get_logger(), "PointCloudPipeline ROS node listening on %s",
                     input_topic.c_str());
+        if (pipeline_.config().backend == pointcloud_pipeline::ExecutionBackend::CUDA) {
+            const char* device_name = pointcloud_pipeline::cudaDeviceName();
+            if (device_name != nullptr) {
+                RCLCPP_INFO(get_logger(), "CUDA backend enabled on %s", device_name);
+            } else {
+                RCLCPP_WARN(get_logger(),
+                            "CUDA backend requested but no GPU is available; using CPU fallback");
+            }
+        }
     }
 
 private:
@@ -171,6 +181,9 @@ private:
             declare_parameter<int>("min_cluster_size", 8);
         config.segmentation.max_cluster_size =
             declare_parameter<int>("max_cluster_size", 250000);
+        const bool use_cuda = declare_parameter<bool>("use_cuda", false);
+        config.backend = use_cuda ? pointcloud_pipeline::ExecutionBackend::CUDA
+                                  : pointcloud_pipeline::ExecutionBackend::CPU;
         return config;
     }
 

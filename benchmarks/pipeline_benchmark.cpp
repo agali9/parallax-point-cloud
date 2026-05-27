@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "pointcloud_pipeline/cuda_backend.hpp"
 #include "pointcloud_pipeline/pipeline.hpp"
 
 namespace pcp = pointcloud_pipeline;
@@ -27,6 +28,15 @@ struct BenchmarkRow {
     std::size_t point_count = 0;
     Stats baseline;
     Stats downsampled;
+    double speedup = 0.0;
+};
+
+struct CudaBenchmarkRow {
+    std::size_t point_count = 0;
+    Stats cpu;
+    Stats gpu_total;
+    Stats gpu_transfer;
+    Stats gpu_compute;
     double speedup = 0.0;
 };
 
@@ -70,6 +80,18 @@ pcp::PipelineConfig benchmarkConfig(bool enable_downsampling) {
     return config;
 }
 
+pcp::PipelineConfig cudaBenchmarkConfig() {
+    pcp::PipelineConfig config = benchmarkConfig(true);
+    config.backend = pcp::ExecutionBackend::CUDA;
+    return config;
+}
+
+pcp::PipelineConfig cpuBenchmarkConfig() {
+    pcp::PipelineConfig config = benchmarkConfig(true);
+    config.backend = pcp::ExecutionBackend::CPU;
+    return config;
+}
+
 Stats summarize(std::vector<double> samples) {
     std::sort(samples.begin(), samples.end());
     const double sum = std::accumulate(samples.begin(), samples.end(), 0.0);
@@ -102,6 +124,51 @@ Stats runTimed(const pcp::PointCloudPipeline& pipeline,
     return summarize(std::move(samples));
 }
 
+CudaBenchmarkRow runCudaComparison(const std::vector<pcp::PointXYZ>& cloud, int iterations) {
+    const pcp::PointCloudPipeline cpu_pipeline(cpuBenchmarkConfig());
+    const pcp::PointCloudPipeline cuda_pipeline(cudaBenchmarkConfig());
+
+  // Warm up CUDA runtime and kernels before timing.
+    (void)cuda_pipeline.process(cloud);
+
+    std::vector<double> cpu_samples;
+    std::vector<double> gpu_total_samples;
+    std::vector<double> transfer_samples;
+    std::vector<double> compute_samples;
+    cpu_samples.reserve(static_cast<std::size_t>(iterations));
+    gpu_total_samples.reserve(static_cast<std::size_t>(iterations));
+    transfer_samples.reserve(static_cast<std::size_t>(iterations));
+    compute_samples.reserve(static_cast<std::size_t>(iterations));
+
+    for (int i = 0; i < iterations; ++i) {
+        const auto cpu_start = std::chrono::steady_clock::now();
+        (void)cpu_pipeline.process(cloud);
+        const auto cpu_end = std::chrono::steady_clock::now();
+        cpu_samples.push_back(
+            std::chrono::duration<double, std::milli>(cpu_end - cpu_start).count());
+
+        const auto gpu_start = std::chrono::steady_clock::now();
+        const auto gpu_result = cuda_pipeline.process(cloud);
+        const auto gpu_end = std::chrono::steady_clock::now();
+        if (!gpu_result.timings.used_cuda) {
+            throw std::runtime_error("CUDA benchmark expected the GPU backend");
+        }
+
+        gpu_total_samples.push_back(
+            std::chrono::duration<double, std::milli>(gpu_end - gpu_start).count());
+        transfer_samples.push_back(gpu_result.timings.h2d_ms + gpu_result.timings.d2h_ms);
+        compute_samples.push_back(gpu_result.timings.filter_ms + gpu_result.timings.downsample_ms);
+    }
+
+    CudaBenchmarkRow row;
+    row.cpu = summarize(std::move(cpu_samples));
+    row.gpu_total = summarize(std::move(gpu_total_samples));
+    row.gpu_transfer = summarize(std::move(transfer_samples));
+    row.gpu_compute = summarize(std::move(compute_samples));
+    row.speedup = row.cpu.mean_ms / row.gpu_total.mean_ms;
+    return row;
+}
+
 std::string renderMarkdownTable(const std::vector<BenchmarkRow>& rows) {
     std::ostringstream out;
     out << "| Points | Baseline mean ms | Downsampled mean ms | Baseline P95 ms | "
@@ -116,7 +183,24 @@ std::string renderMarkdownTable(const std::vector<BenchmarkRow>& rows) {
     return out.str();
 }
 
-void updateReadmeTable(const std::filesystem::path& readme_path, const std::string& table) {
+std::string renderCudaMarkdownTable(const std::vector<CudaBenchmarkRow>& rows) {
+    std::ostringstream out;
+    out << "| Points | CPU mean ms | GPU total mean ms | GPU compute mean ms | "
+           "H2D+D2H mean ms | Speedup |\n";
+    out << "|---:|---:|---:|---:|---:|---:|\n";
+    out << std::fixed << std::setprecision(2);
+    for (const CudaBenchmarkRow& row : rows) {
+        out << "| " << row.point_count << " | " << row.cpu.mean_ms << " | "
+            << row.gpu_total.mean_ms << " | " << row.gpu_compute.mean_ms << " | "
+            << row.gpu_transfer.mean_ms << " | " << row.speedup << "x |\n";
+    }
+    return out.str();
+}
+
+void updateMarkedTable(const std::filesystem::path& readme_path,
+                       const std::string& table,
+                       const std::string& begin_marker,
+                       const std::string& end_marker) {
     std::ifstream input(readme_path);
     if (!input) {
         throw std::runtime_error("could not open README.md for benchmark table update");
@@ -126,26 +210,30 @@ void updateReadmeTable(const std::filesystem::path& readme_path, const std::stri
     buffer << input.rdbuf();
     std::string text = buffer.str();
 
-    const std::string begin = "<!-- BENCHMARK_TABLE_BEGIN -->";
-    const std::string end = "<!-- BENCHMARK_TABLE_END -->";
-    const std::size_t begin_pos = text.find(begin);
-    const std::size_t end_pos = text.find(end);
+    const std::size_t begin_pos = text.find(begin_marker);
+    const std::size_t end_pos = text.find(end_marker);
     if (begin_pos == std::string::npos || end_pos == std::string::npos || begin_pos > end_pos) {
         throw std::runtime_error("README benchmark markers were not found");
     }
 
-    const std::string replacement = begin + "\n" + table + end;
-    text.replace(begin_pos, end_pos + end.size() - begin_pos, replacement);
+    const std::string replacement = begin_marker + "\n" + table + end_marker;
+    text.replace(begin_pos, end_pos + end_marker.size() - begin_pos, replacement);
 
     std::ofstream output(readme_path);
     output << text;
 }
 
-}  // namespace
+void updateReadmeTable(const std::filesystem::path& readme_path, const std::string& table) {
+    updateMarkedTable(readme_path, table, "<!-- BENCHMARK_TABLE_BEGIN -->",
+                      "<!-- BENCHMARK_TABLE_END -->");
+}
 
-int main(int argc, char** argv) {
-    const bool update_readme =
-        argc > 1 && std::string(argv[1]) == std::string("--update-readme");
+void updateCudaReadmeTable(const std::filesystem::path& readme_path, const std::string& table) {
+    updateMarkedTable(readme_path, table, "<!-- CUDA_BENCHMARK_TABLE_BEGIN -->",
+                      "<!-- CUDA_BENCHMARK_TABLE_END -->");
+}
+
+int runCpuBenchmark(bool update_readme) {
     const int iterations = 5;
     const std::vector<std::size_t> sizes{100000U, 250000U, 500000U, 1000000U};
 
@@ -181,4 +269,66 @@ int main(int argc, char** argv) {
     }
 
     return 0;
+}
+
+int runCudaBenchmark(bool update_readme) {
+    if (!pcp::isCudaAvailable()) {
+        std::cerr << "CUDA benchmark requested but no compatible GPU is available\n";
+        return 1;
+    }
+
+    const char* device_name = pcp::cudaDeviceName();
+    if (device_name != nullptr) {
+        std::cout << "CUDA device: " << device_name << '\n';
+    }
+
+    const int iterations = 5;
+    const std::vector<std::size_t> sizes{100000U, 250000U, 500000U, 1000000U};
+
+    std::vector<CudaBenchmarkRow> rows;
+    rows.reserve(sizes.size());
+
+    for (const std::size_t size : sizes) {
+        std::cout << "Generating " << size << " synthetic LiDAR points for CUDA benchmark\n";
+        const std::vector<pcp::PointXYZ> cloud = makeSyntheticLidarCloud(size);
+
+        CudaBenchmarkRow row = runCudaComparison(cloud, iterations);
+        row.point_count = size;
+        rows.push_back(row);
+    }
+
+    const std::string table = renderCudaMarkdownTable(rows);
+    std::cout << '\n' << table;
+
+    const std::filesystem::path results_path = "benchmarks/latest_cuda_results.md";
+    std::ofstream results(results_path);
+    results << table;
+    std::cout << "\nWrote " << results_path.string() << '\n';
+
+    if (update_readme) {
+        updateCudaReadmeTable("README.md", table);
+        std::cout << "Updated README.md CUDA benchmark table\n";
+    }
+
+    return 0;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    bool update_readme = false;
+    bool run_cuda = false;
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "--update-readme") {
+            update_readme = true;
+        } else if (arg == "--cuda") {
+            run_cuda = true;
+        }
+    }
+
+    if (run_cuda) {
+        return runCudaBenchmark(update_readme);
+    }
+    return runCpuBenchmark(update_readme);
 }

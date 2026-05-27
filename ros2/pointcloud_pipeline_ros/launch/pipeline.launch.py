@@ -23,6 +23,7 @@ def generate_launch_description():
                 "cluster_tolerance": 0.65,
                 "min_cluster_size": 8,
                 "max_cluster_size": 250000,
+                "use_cuda": False,
             }],
         )
     ])

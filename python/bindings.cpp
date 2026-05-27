@@ -123,6 +123,10 @@ pcp::PipelineConfig pipelineConfigFromKwargs(const py::kwargs& kwargs) {
     if (kwargs.contains("enable_downsampling")) {
         config.enable_downsampling = kwargs["enable_downsampling"].cast<bool>();
     }
+    if (kwargs.contains("use_cuda")) {
+        config.backend = kwargs["use_cuda"].cast<bool>() ? pcp::ExecutionBackend::CUDA
+                                                         : pcp::ExecutionBackend::CPU;
+    }
     return config;
 }
 
@@ -130,6 +134,18 @@ pcp::PipelineConfig pipelineConfigFromKwargs(const py::kwargs& kwargs) {
 
 PYBIND11_MODULE(pointcloud_pipeline_py, module) {
     module.doc() = "Real-time LiDAR point cloud processing pipeline bindings";
+
+    module.def("is_cuda_available", &pcp::isCudaAvailable,
+               "Return True when the library was built with CUDA and a GPU is present.");
+    module.def("cuda_device_name",
+               []() -> py::object {
+                   const char* name = pcp::cudaDeviceName();
+                   if (name == nullptr) {
+                       return py::none();
+                   }
+                   return py::str(name);
+               },
+               "Return the active CUDA device name, or None when unavailable.");
 
     module.def("numpy_data_address",
                [](const py::array_t<float, py::array::c_style>& cloud) {
@@ -172,6 +188,9 @@ PYBIND11_MODULE(pointcloud_pipeline_py, module) {
                    timings["downsample_ms"] = result.timings.downsample_ms;
                    timings["segmentation_ms"] = result.timings.segmentation_ms;
                    timings["total_ms"] = result.timings.total_ms;
+                   timings["h2d_ms"] = result.timings.h2d_ms;
+                   timings["d2h_ms"] = result.timings.d2h_ms;
+                   timings["used_cuda"] = result.timings.used_cuda;
 
                    py::dict output;
                    output["input_address"] = view.address;
