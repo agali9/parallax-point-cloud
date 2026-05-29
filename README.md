@@ -124,3 +124,9 @@ CUDA hybrid path (same machine: CUDA 13.3, NVIDIA GeForce RTX 5070 Laptop GPU):
 ```bash
 ctest --test-dir build --output-on-failure
 ```
+
+## KITTI I/O
+
+`loadKittiBin` reads Velodyne `.bin` scans (x, y, z, intensity float32 records).
+A tiny fixture test is in place; real-scan timing tables land once the benchmark
+`--kitti` path is wired.

@@ -3,6 +3,7 @@
 #include "pointcloud_pipeline/config.hpp"
 #include "pointcloud_pipeline/cuda_backend.hpp"
 #include "pointcloud_pipeline/filtering.hpp"
+#include "pointcloud_pipeline/io.hpp"
 #include "pointcloud_pipeline/open3d_bridge.hpp"
 #include "pointcloud_pipeline/pipeline.hpp"
 #include "pointcloud_pipeline/segmentation.hpp"

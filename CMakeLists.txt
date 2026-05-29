@@ -20,6 +20,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(POINTCLOUD_PIPELINE_SOURCES
     src/cuda_backend.cpp
     src/filtering.cpp
+    src/io.cpp
     src/pipeline.cpp
     src/segmentation.cpp
     src/voxel_grid.cpp)
@@ -170,6 +171,7 @@ if(POINTCLOUD_PIPELINE_BUILD_TESTS)
 
     add_executable(pointcloud_pipeline_tests
         tests/test_filtering.cpp
+        tests/test_io.cpp
         tests/test_pipeline.cpp
         tests/test_segmentation.cpp
         tests/test_voxel_grid.cpp
