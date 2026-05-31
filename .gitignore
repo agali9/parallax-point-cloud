@@ -9,8 +9,7 @@ coverage/
 benchmarks/latest_results.md
 benchmarks/latest_cuda_results.md
 benchmarks/latest_kitti_results.md
+data/kitti/
 compile_commands.json
 
 pointcloud-pipeline_context.md
-
-data/kitti/

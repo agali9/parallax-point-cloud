@@ -1,12 +1,16 @@
 #include "test_common.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "pointcloud_pipeline/io.hpp"
 
 using pointcloud_pipeline::loadKittiBin;
+using pointcloud_pipeline::PointXYZ;
 
 namespace {
 
@@ -46,6 +50,24 @@ TEST(Io, LoadsKittiBinFixture) {
     EXPECT_NEAR(cloud[0].x, 1.0F, 1.0e-5F);
     EXPECT_NEAR(cloud[0].y, 2.0F, 1.0e-5F);
     EXPECT_NEAR(cloud[0].z, 3.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[1].x, 4.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[1].y, 5.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[1].z, 6.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[2].x, -1.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[2].y, 0.0F, 1.0e-5F);
+    EXPECT_NEAR(cloud[2].z, 1.5F, 1.0e-5F);
+}
+
+TEST(Io, RejectsTruncatedKittiBin) {
+    const auto path = std::filesystem::temp_directory_path() / "kitti_truncated.bin";
+    {
+        std::ofstream out(path, std::ios::binary);
+        const float partial[] = {1.0F, 2.0F, 3.0F};  // 12 bytes, not a full record
+        out.write(reinterpret_cast<const char*>(partial), sizeof(partial));
+    }
+
+    EXPECT_TRUE(throwsRuntimeError([&] { (void)loadKittiBin(path); }));
+    std::filesystem::remove(path);
 }
 
 TEST(Io, RejectsMissingKittiBin) {

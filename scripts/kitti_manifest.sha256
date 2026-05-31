@@ -1,0 +1,8 @@
+# SHA256  filename
+# KITTI Velodyne .bin sample used by pointcloud_pipeline_benchmark --kitti
+# Source: KITTI object detection training velodyne (sample archive)
+fa0c10ad38b2f156ae94cfa222d146181c6e8b272522d0fa3c00e292756c457d  000021.bin
+639b135bc83acd0a2240a79a0d29ff024e716940d2e316b98e6a6c6a6c31d131  000022.bin
+4f813f3c381b675950e46641ed07fb5d9c3900693623f2895247e33403fd27b2  000023.bin
+5a1f121c9bc94b92454257a1cdb3eecd08e1e5eec0fed8b7c7579a053558c7d7  000024.bin
+285c582c17e32189ab224e68f7a86628c0063e19b14c0a255d0893dc9c28812c  000025.bin

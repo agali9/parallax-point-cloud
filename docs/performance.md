@@ -7,6 +7,8 @@ cars, walls, poles, and other objects.
 
 ## Benchmark Methodology
 
+### Synthetic scaling study
+
 The benchmark executable generates deterministic synthetic LiDAR-like point
 clouds at these sizes:
 
@@ -28,8 +30,23 @@ frame time, then computes speedup from the measured means. It also writes
 ./build/pointcloud_pipeline_benchmark --update-readme
 ```
 
-No benchmark values are stored by hand. The table is produced by the executable
-from the current machine, compiler, and build type.
+No synthetic benchmark values are stored by hand. The table is produced by the
+executable from the current machine, compiler, and build type.
+
+### Real KITTI validation
+
+For real sensor data, fetch a small consecutive Velodyne sample and evaluate
+counts plus CPU/CUDA latency:
+
+```bash
+python scripts/fetch_kitti_sample.py
+./build/Release/pointcloud_pipeline_benchmark --kitti data/kitti --cuda --update-readme
+```
+
+KITTI mode uses an outdoor vehicle ROI (not the synthetic generator bounds),
+reports input / filtered / voxelized / cluster counts per frame, and writes
+`benchmarks/latest_kitti_results.md`. Raw `.bin` files stay gitignored under
+`data/kitti/`; SHA256 hashes are checked via `scripts/kitti_manifest.sha256`.
 
 ## Why Voxel Downsampling Helps
 

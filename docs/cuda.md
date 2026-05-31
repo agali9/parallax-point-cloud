@@ -93,6 +93,16 @@ The CUDA benchmark compares the full CPU pipeline against the hybrid GPU preproc
 
 Results are written to `benchmarks/latest_cuda_results.md`.
 
+Real KITTI scans use the same transfer-aware accounting:
+
+```bash
+python scripts/fetch_kitti_sample.py
+./build/Release/pointcloud_pipeline_benchmark --kitti data/kitti --cuda --update-readme
+```
+
+At ~100–130k real points, end-to-end GPU speedup is frame-dependent (sometimes
+slower than CPU). Preserve that honesty rather than quoting only favorable frames.
+
 ## Parity
 
 `tests/test_cuda_parity.cpp` compares CPU and GPU outputs for filtering, voxel downsampling, and end-to-end cluster counts. These tests skip automatically when no GPU is available.
